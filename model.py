@@ -103,15 +103,8 @@ def extract_features_single(imgs, spatial_size=(16, 16), hist_bins=32, hist_rang
     return features
 
 
-def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
-    imcopy = np.copy(img)
-    for bbox in bboxes:
-        cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
+def sliding_window(img, x_start, y_start, xy_window=(16, 16), xy_overlap=(0.5, 0.5)):
 
-    return imcopy
-
-
-def slide_window(img, x_start, y_start, xy_window=(16, 16), xy_overlap=(0.5, 0.5)):
     # Compute the span of the region to be searched
     xspan = x_start[1] - x_start[0]
     yspan = y_start[1] - y_start[0]
@@ -119,10 +112,15 @@ def slide_window(img, x_start, y_start, xy_window=(16, 16), xy_overlap=(0.5, 0.5
     # Compute the number of pixels per step
     nx_pix_per_step = np.int(xy_window[0] * (1 - xy_overlap[0]))
     ny_pix_per_step = np.int(xy_window[1] * (1 - xy_overlap[1]))
+    print("x pix per step : ", nx_pix_per_step)
+    print("y pix per step : ", ny_pix_per_step)
 
     # Compute the number of windows
     nx_windows = np.int(xspan / nx_pix_per_step) - 1
     ny_windows = np.int(yspan / nx_pix_per_step) - 1
+    print("number of X windows : ", nx_windows)
+    print("number of Y windows : ", ny_windows)
+    print("Total number of windows : ", nx_windows * ny_windows)
 
     window_list = []
     for ys in range(ny_windows):
@@ -165,27 +163,27 @@ def search_windows(img, windows, clf, scaler, spatial_size=(32, 32), hist_bins=3
 
     return on_windows
 
-
 # Heatmap
 def heatmap(heatmap_image, windows):
 
     for window in windows:
         # print(window[0][1],window[1][1], window[0][0],window[1][0])
-        heatmap_image[window[0][1]:window[1][1], window[0][0]:window[1][0]] += 5
+        heatmap_image[window[0][1]:window[1][1], window[0][0]:window[1][0]] += 10
 
     # plt.imshow(heatmap_img)
 
     return heatmap_image
 
 
-# Threshold image
+# Merge windows that locate nearby others
 def apply_threshold(heatmap, threshold):
     new_heatmap = np.copy(heatmap)
+
     # Zero out pixels below the threshold
     new_heatmap[new_heatmap <= threshold] = 0
-    # Return thresholded map
-    return new_heatmap
 
+    # Return threshold map
+    return new_heatmap
 
 def draw_labeled_bboxes(img, labels):
     for eye_img in range(1, labels[1] + 1):
@@ -200,3 +198,4 @@ def draw_labeled_bboxes(img, labels):
         cv2.rectangle(img, bbox[0], bbox[1], (255, 0, 0), 3)
 
     return img
+
